@@ -2,15 +2,12 @@ package com.example.movieapp.repositories
 
 import android.util.Log
 import com.example.movieapp.database.MovieDatabase
-import com.example.movieapp.server.MovieDataApi
 import com.example.movieapp.database.Movies
+import com.example.movieapp.server.MovieDataApi
 import com.example.movieapp.util.Constants
 import com.example.movieapp.util.ErrorUtils.handleError
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
-import retrofit2.HttpException
-import java.io.IOException
-import java.util.concurrent.TimeoutException
 
 class RepositoryData (private val movieDataApi: MovieDataApi, private val movieDatabase: MovieDatabase) {
     private lateinit var moviesList : List<Movies>
@@ -21,16 +18,16 @@ class RepositoryData (private val movieDataApi: MovieDataApi, private val movieD
         loadMoviesRemote(movieType, page)
             .catch {
                  handleError(it)
-                if (::moviesList.isInitialized) emit(moviesList)
+                if (::moviesList.isInitialized) emit(moviesList to 0)
             }
             .collect { emit(it) }
     }
 
     // Get all movies with the movie name
-    suspend fun getSearchMovies(movieName : String) = flow {
-        loadSearchMovies(movieName).catch {
+    suspend fun getSearchMovies(movieName : String, page: String) = flow {
+        loadSearchMovies(movieName, page).catch {
             handleError(it)
-            emit(listOf())
+            emit(listOf<Movies>() to 0)
         }.collect {
             emit(it)
         }
@@ -48,19 +45,23 @@ class RepositoryData (private val movieDataApi: MovieDataApi, private val movieD
     private suspend fun loadMoviesRemote(movieType: String, page: String) = flow {
         val response = movieDataApi.getMovie(movieType, page, Constants.API_KEY)
         if (response.isSuccessful && response.body() != null) {
-            moviesList = getMappedMovies(response.body()!!.results)
-            movieDatabase.getMoviesDao().insertAllMovies(moviesList)
-            emit(moviesList)
+            response.body()?.let {
+                moviesList = getMappedMovies(it.results)
+                movieDatabase.getMoviesDao().insertAllMovies(moviesList)
+                emit(moviesList to it.total_pages)
+            }
         } else {
             Log.e(TAG, "Error loading movies : ${response.errorBody()}")
-            emit(listOf())
+            emit(listOf<Movies>() to 0)
         }
     }
 
-    private suspend fun loadSearchMovies(movieName : String) = flow {
-        val response = movieDataApi.getSearchMovie(movieName, Constants.API_KEY)
+    private suspend fun loadSearchMovies(movieName : String, page: String) = flow {
+        val response = movieDataApi.getSearchMovie(movieName, page, Constants.API_KEY)
         if (response.isSuccessful && response.body() != null) {
-            emit(response.body()!!.results)
+            response.body()?.let {
+                emit(it.results to it.total_pages)
+            }
         }else{
             Log.e(TAG, "Error searching movies : ${response.errorBody()}" )
         }

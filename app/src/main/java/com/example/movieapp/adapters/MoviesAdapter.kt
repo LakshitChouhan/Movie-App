@@ -17,10 +17,12 @@ import com.example.movieapp.data.movieDetails.MovieDetailsActivity
 import com.example.movieapp.database.Movies
 import com.example.movieapp.util.Constants.BASE_IMAGE_URL
 
-class MoviesAdapter(private val moviesList: List<Movies>, private val context: Context) :
-    RecyclerView.Adapter<MoviesAdapter.MovieViewHolder>(){
+class MoviesAdapter(
+    private val moviesList: MutableList<Movies>, private val context: Context
+) : RecyclerView.Adapter<MoviesAdapter.MovieViewHolder>(){
 
     private val density: Float = context.resources.displayMetrics.density
+    private val moviesDataList: MutableList<Movies> = moviesList
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MovieViewHolder {
         val movieView = LayoutInflater.from(parent.context).inflate(R.layout.item_list_movies_content,parent,false)
@@ -30,21 +32,27 @@ class MoviesAdapter(private val moviesList: List<Movies>, private val context: C
     override fun onBindViewHolder(holder: MovieViewHolder, position: Int) {
 
         holder.apply {
-            movieName.text = moviesList[position].original_title
-            val releaseDate: List<String>  = moviesList[position].release_date.split('-').toList()
+            movieName.text = moviesDataList[position].original_title
+            val releaseDate: List<String>  = moviesDataList[position].release_date.split('-').toList()
             movieYear.text = releaseDate[0]
-            id.text = moviesList[position].id.toString()
-            ratingBar.rating = moviesList[position].vote_average / 2
+            id.text = moviesDataList[position].id.toString()
+            ratingBar.rating = moviesDataList[position].vote_average / 2
         }
 
         Glide.with(context)
-            .load(BASE_IMAGE_URL + moviesList[position].poster_path)
+            .load(BASE_IMAGE_URL + moviesDataList[position].poster_path)
             .transform(RoundedCorners((20 * density).toInt()))
             .into(holder.poster)
     }
 
     override fun getItemCount(): Int {
-        return moviesList.size
+        return moviesDataList.size
+    }
+
+    fun addMovies(newMovies: List<Movies>) {
+        val startPos = moviesDataList.size
+        moviesDataList.addAll(newMovies)
+        notifyItemRangeInserted(startPos, newMovies.size)
     }
 
     inner class MovieViewHolder(itemView : View) : RecyclerView.ViewHolder(itemView){

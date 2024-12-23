@@ -1,15 +1,12 @@
 package com.example.movieapp.data.movieDetails
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.movieapp.database.Movies
-import com.example.movieapp.server.MovieResponseDetails
 import com.example.movieapp.repositories.RepositoryMovieDetailsData
+import com.example.movieapp.server.MovieResponseDetails
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 

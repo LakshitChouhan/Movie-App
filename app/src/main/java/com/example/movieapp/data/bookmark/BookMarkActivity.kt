@@ -7,28 +7,30 @@ import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.example.movieapp.R
 import com.example.movieapp.adapters.MoviesAdapter
 import com.example.movieapp.data.search.SearchMoviesActivity
+import com.example.movieapp.databinding.BookmarkMoviesActivityBinding
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class BookMarkActivity: AppCompatActivity() {
     private lateinit var bookmarkMoviesViewModel : BookMarkViewModel
+    private lateinit var binding: BookmarkMoviesActivityBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.bookmark_movies_activity)
+
+        binding = BookmarkMoviesActivityBinding.inflate(layoutInflater)
+        setContentView(binding.root)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         bookmarkMoviesViewModel = ViewModelProvider(this)[BookMarkViewModel::class.java]
-        val bookmarkMoviesRecyclerView: RecyclerView = findViewById(R.id.bookmarkMoviesRecyclerView)
-        bookmarkMoviesRecyclerView.layoutManager = GridLayoutManager(this,2, GridLayoutManager.VERTICAL,false)
+        binding.bookmarkMoviesRecyclerView.layoutManager = GridLayoutManager(this,2, GridLayoutManager.VERTICAL,false)
 
         bookmarkMoviesViewModel.getAllMovies()
         bookmarkMoviesViewModel.bookmarkMovies.observe(this) {
-            it?.let { bookmarkMoviesRecyclerView.adapter = MoviesAdapter(it, applicationContext) }
+            it?.let { binding.bookmarkMoviesRecyclerView.adapter = MoviesAdapter(it.toMutableList(), applicationContext) }
         }
     }
 
@@ -44,7 +46,6 @@ class BookMarkActivity: AppCompatActivity() {
                 startActivity(intent)
                 true
             }
-
             android.R.id.home -> {
                 onBackPressed()
                 true

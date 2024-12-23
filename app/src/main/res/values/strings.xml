@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">TMDB</string>
+    <string name="app_name">Movie Play</string>
     <string name="movies">Movies</string>
     <string name="movie_poster">Movie Poster</string>
     <string name="overview">Overview:</string>
@@ -19,5 +19,4 @@
     <string name="Movie_Detail">Movie Details</string>
     <string name="airing_today">Airing Today</string>
     <string name="first_air_date">First Air Date</string>
-    <string name="tmdb_logo">TMDB Logo</string>
 </resources>

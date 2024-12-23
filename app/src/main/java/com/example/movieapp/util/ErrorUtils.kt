@@ -1,7 +1,6 @@
 package com.example.movieapp.util
 
 import android.util.Log
-import com.example.movieapp.repositories.RepositoryData
 import retrofit2.HttpException
 import java.io.IOException
 import java.util.concurrent.TimeoutException

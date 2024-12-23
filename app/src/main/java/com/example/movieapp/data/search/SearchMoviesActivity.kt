@@ -6,7 +6,6 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.view.Menu
 import android.view.MenuItem
-import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -15,44 +14,64 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.movieapp.R
 import com.example.movieapp.adapters.MoviesAdapter
 import com.example.movieapp.data.bookmark.BookMarkActivity
+import com.example.movieapp.database.Movies
+import com.example.movieapp.databinding.SearchMoviesActivityBinding
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicBoolean
 
 @AndroidEntryPoint
 class SearchMoviesActivity: AppCompatActivity() {
     private lateinit var searchMoviesViewModel : SearchMovieViewModel
+    private lateinit var moviesAdapter: MoviesAdapter
+    private lateinit var binding: SearchMoviesActivityBinding
 
     private var searchJob: Job? = null
+    private val isLoading = AtomicBoolean(false)
+    private var currentPage = 1
+    private var totalPage = 1
+    private var currentSearchMovie: String = ""
+    private var prevSearchMovie: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.search_movies_activity)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
+        binding = SearchMoviesActivityBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
         searchMoviesViewModel = ViewModelProvider(this)[SearchMovieViewModel::class.java]
 
-        val searchMoviesRecyclerView: RecyclerView = findViewById(R.id.searchMoviesRecyclerView)
-        val searchMovieTextView: EditText = findViewById(R.id.search_movies)
+        binding.searchMoviesRecyclerView.layoutManager = GridLayoutManager(this,2, GridLayoutManager.VERTICAL,false)
 
-        searchMoviesRecyclerView.layoutManager = GridLayoutManager(this,2, GridLayoutManager.VERTICAL,false)
-
-        searchMovieTextView.addTextChangedListener(object : TextWatcher {
+        binding.searchMovies.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
                 searchJob?.cancel()
                 searchJob = lifecycleScope.launch {
-                    delay(1500)
-                    searchMoviesViewModel.getSearchMovies(s.toString())
+                    delay(500)
+                    currentSearchMovie = s.toString()
+                    loadSearchMovies(currentSearchMovie)
                 }
             }
         })
 
         searchMoviesViewModel.movieResults.observe(this) {
-            it?.let { searchMoviesRecyclerView.adapter = MoviesAdapter(it, applicationContext) }
+            it?.let { loadMoviesToAdapter(it.first, it.second) }
+            prevSearchMovie = currentSearchMovie
         }
+
+        binding.searchMoviesRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+                if (!recyclerView.canScrollVertically(1) && !isLoading.get() && currentPage < totalPage) {
+                    currentPage++
+                    lifecycleScope.launch { loadSearchMovies(currentSearchMovie) }
+                }
+            }
+        })
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -73,6 +92,25 @@ class SearchMoviesActivity: AppCompatActivity() {
                 true
             }
             else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    private suspend fun loadSearchMovies(movieName: String) {
+        repeat(5) {
+            searchMoviesViewModel.getSearchMovies(movieName, currentPage)
+            delay(500)
+            currentPage++
+        }
+    }
+
+    private fun loadMoviesToAdapter(moviesList: List<Movies>, total: Int) {
+        totalPage = total
+        isLoading.set(false)
+        if(currentPage == 1 || prevSearchMovie != currentSearchMovie) {
+            moviesAdapter = MoviesAdapter(moviesList.toMutableList(), applicationContext)
+            binding.searchMoviesRecyclerView.adapter = moviesAdapter
+        } else {
+            if(::moviesAdapter.isInitialized) moviesAdapter.addMovies(moviesList)
         }
     }
 }

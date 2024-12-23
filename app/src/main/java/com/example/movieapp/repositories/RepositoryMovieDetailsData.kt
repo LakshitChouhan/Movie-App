@@ -2,17 +2,13 @@ package com.example.movieapp.repositories
 
 import android.util.Log
 import com.example.movieapp.database.MovieDatabase
+import com.example.movieapp.database.Movies
 import com.example.movieapp.server.MovieDataApi
 import com.example.movieapp.server.MovieResponseDetails
-import com.example.movieapp.database.Movies
 import com.example.movieapp.util.Constants
 import com.example.movieapp.util.ErrorUtils.handleError
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import retrofit2.HttpException
-import java.io.IOException
-import java.time.Year
-import java.util.concurrent.TimeoutException
 import javax.inject.Inject
 
 class RepositoryMovieDetailsData @Inject constructor(

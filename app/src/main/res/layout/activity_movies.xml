@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ui.MoviesActivity"
+    tools:context=".MainActivity"
     android:background="@drawable/screen_background">
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -43,13 +43,13 @@
             android:background="@drawable/home_button"
             android:text="@string/top_rated"
             android:textColor="@android:color/white"
-            app:layout_constraintEnd_toStartOf="@id/Now_Playing_tab"
+            app:layout_constraintEnd_toStartOf="@id/now_Playing_tab"
             app:layout_constraintStart_toEndOf="@id/popular_tab"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="@id/home_button_layout"/>
 
         <Button
-            android:id="@+id/Now_Playing_tab"
+            android:id="@+id/now_Playing_tab"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"

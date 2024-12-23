@@ -1,71 +1,78 @@
 package com.example.movieapp
 
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.widget.Button
-import androidx.lifecycle.Observer
+import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.movieapp.adapters.MoviesAdapter
 import com.example.movieapp.data.bookmark.BookMarkActivity
-import com.example.movieapp.database.Movies
 import com.example.movieapp.data.search.SearchMoviesActivity
+import com.example.movieapp.database.Movies
+import com.example.movieapp.databinding.ActivityMoviesBinding
 import com.example.movieapp.util.Constants
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicBoolean
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
     private lateinit var moviesViewModel : MovieViewModel
-    private var tTemp:String = "popular"
-    private var tbool : Int = 1
-    private lateinit var movieRecyclerView: RecyclerView
+    private lateinit var binding: ActivityMoviesBinding
+    private lateinit var moviesAdapter: MoviesAdapter
+
+    private val isLoading = AtomicBoolean(false)
+    private var currentPage = 1
+    private var totalPage = 1
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_movies)
 
+        binding = ActivityMoviesBinding.inflate(layoutInflater)
+        setContentView(binding.root)
         moviesViewModel = ViewModelProvider(this)[MovieViewModel::class.java]
 
-        movieRecyclerView = findViewById(R.id.movieRecyclerView)
-        val popularTab: Button = findViewById(R.id.popular_tab)
-        val topRatedTab: Button = findViewById(R.id.top_Rated_tab)
-        val nowPlayingTab: Button = findViewById(R.id.Now_Playing_tab)
+        binding.movieRecyclerView.layoutManager = GridLayoutManager(this,2,GridLayoutManager.VERTICAL,false)
 
-        movieRecyclerView.layoutManager = GridLayoutManager(this,2,GridLayoutManager.VERTICAL,false)
-
-        getRecyclerViewData(R.id.popular_tab)
-
-        var prevView: View = popularTab
-
-        popularTab.setOnClickListener {
+        lifecycleScope.launch {
             getRecyclerViewData(R.id.popular_tab)
-            it.setBackgroundResource(R.drawable.home_button_set)
-            prevView.setBackgroundResource(R.drawable.home_button)
+        }
+
+        var prevView: View = binding.popularTab
+        binding.popularTab.setOnClickListener {
+            setCurrentButton(it, prevView)
             prevView = it
         }
 
-        topRatedTab.setOnClickListener {
-            getRecyclerViewData(R.id.top_Rated_tab)
-            it.setBackgroundResource(R.drawable.home_button_set)
-            prevView.setBackgroundResource(R.drawable.home_button)
+        binding.topRatedTab.setOnClickListener {
+            setCurrentButton(it, prevView)
             prevView = it
         }
 
-        nowPlayingTab.setOnClickListener {
-            getRecyclerViewData(R.id.Now_Playing_tab)
-            it.setBackgroundResource(R.drawable.home_button_set)
-            prevView.setBackgroundResource(R.drawable.home_button)
+        binding.nowPlayingTab.setOnClickListener {
+            setCurrentButton(it, prevView)
             prevView = it
         }
 
-        moviesViewModel.movies.observe(this, Observer {
-            populateMovieRecycler(it)
+        moviesViewModel.movies.observe(this) {
+            loadMoviesToAdapter(it.first, it.second)
+        }
+
+        binding.movieRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+                if (!recyclerView.canScrollVertically(1) && !isLoading.get() && currentPage < totalPage) {
+                    currentPage++
+                    lifecycleScope.launch { getRecyclerViewData(recyclerView.id) }
+                }
+            }
         })
     }
 
@@ -81,7 +88,6 @@ class MainActivity : AppCompatActivity() {
                 startActivity(intent)
                 true
             }
-
             R.id.action_bookmark -> {
                 val intent = Intent(this, BookMarkActivity::class.java)
                 startActivity(intent)
@@ -91,20 +97,36 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun getRecyclerViewData(id : Int){
+    private suspend fun getRecyclerViewData(id : Int){
+        if (isLoading.get()) return  // Prevent multiple requests at the same time
+        isLoading.set(true)
         val type = when(id){
             R.id.popular_tab ->  Constants.POPULAR
             R.id.top_Rated_tab -> Constants.TOP_RATED
             else -> Constants.NOW_PLAYING
         }
-        if(type != tTemp) {
-            tTemp = type
+        repeat(5) {
+            moviesViewModel.getMovies(type, currentPage)
+            delay(500)
+            currentPage++
         }
-        moviesViewModel.getMovies(type, tbool)
     }
 
-    private fun populateMovieRecycler(moviesList: List<Movies>) {
-        movieRecyclerView.adapter = MoviesAdapter(moviesList, applicationContext)
+    private fun setCurrentButton(view: View, prevView: View) {
+        currentPage = 1
+        lifecycleScope.launch { getRecyclerViewData(view.id) }
+        view.setBackgroundResource(R.drawable.home_button_set)
+        prevView.setBackgroundResource(R.drawable.home_button)
     }
 
+    private fun loadMoviesToAdapter(moviesList: List<Movies>, total: Int) {
+        totalPage = total
+        isLoading.set(false)
+        if(currentPage == 1) {
+            moviesAdapter = MoviesAdapter(moviesList.toMutableList(), applicationContext)
+            binding.movieRecyclerView.adapter = moviesAdapter
+        } else {
+            if(::moviesAdapter.isInitialized) moviesAdapter.addMovies(moviesList)
+        }
+    }
 }

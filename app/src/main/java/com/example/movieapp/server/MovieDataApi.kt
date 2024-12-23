@@ -15,7 +15,7 @@ interface MovieDataApi {
     suspend fun getMovieDetails(@Path("id") id : String, @Query ("api_key") apiKey: String) : Response<MovieResponseDetails>
 
     @GET("/3/search/movie")
-    suspend fun getSearchMovie(@Query("query") name: String, @Query("api_key") apiKey: String): Response<MovieResponse>
+    suspend fun getSearchMovie(@Query("query") name: String, @Query("page") page: String, @Query("api_key") apiKey: String): Response<MovieResponse>
 
     @GET("/3/search/movie")
     suspend fun getUniqueSearchMovie(
