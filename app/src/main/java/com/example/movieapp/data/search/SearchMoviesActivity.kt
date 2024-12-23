@@ -53,6 +53,7 @@ class SearchMoviesActivity: AppCompatActivity() {
                 searchJob = lifecycleScope.launch {
                     delay(500)
                     currentSearchMovie = s.toString()
+                    currentPage = 1
                     loadSearchMovies(currentSearchMovie)
                 }
             }
